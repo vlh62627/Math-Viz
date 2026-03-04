@@ -32,7 +32,7 @@ col_opt1, col_opt2 = st.columns(2)
 with col_opt1:
     model_choice = st.selectbox(
         "🧠 Select Reasoning Engine", 
-        ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemma-3-27b-it"]
+        ["gemma-3-27b-it", "gemini-2.0-flash-lite", "gemini-2.0-flash"]
     )
 with col_opt2:
     complexity = st.select_slider("Explanation Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
@@ -114,4 +114,5 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
+
 
