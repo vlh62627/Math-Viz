@@ -6,12 +6,27 @@ from PIL import Image
 # 1. Page Configuration
 st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="wide")
 
-# Custom CSS for the Laboratory look
+# Custom CSS for Left Alignment and Spacing
 st.markdown("""
     <style>
     .main { background-color: #fcfcfc; }
-    .math-header { color: #1E3A8A; font-family: 'Helvetica', sans-serif; margin-bottom: 0px; text-align: center; }
-    .attribution { color: #555; text-align: center; font-size: 0.9rem; margin-bottom: 30px; }
+    
+    /* Left Aligned Header & Attributes */
+    .math-header { 
+        color: #1E3A8A; 
+        font-family: 'Helvetica', sans-serif; 
+        margin-bottom: 5px; 
+        text-align: left; 
+    }
+    .attribution { 
+        color: #555; 
+        text-align: left; 
+        font-size: 0.95rem; 
+        margin: 0px; /* Removes default gaps between lines */
+        padding-bottom: 5px;
+    }
+    
+    /* Button Styling */
     .stButton>button { 
         width: 100%; 
         border-radius: 10px; 
@@ -21,11 +36,19 @@ st.markdown("""
         font-weight: bold;
         font-size: 1.1rem;
     }
-    .result-box { background-color: #ffffff; padding: 25px; border-radius: 10px; border: 1px solid #ddd; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); }
+    
+    /* Result Box Styling */
+    .result-box { 
+        background-color: #ffffff; 
+        padding: 25px; 
+        border-radius: 10px; 
+        border: 1px solid #ddd; 
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.05); 
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Header & Attribution
+# 2. Header & Attribution (Now Left Aligned)
 st.markdown("<h1 class='math-header'>📐 VizAI Math Engine</h1>", unsafe_allow_html=True)
 st.markdown("<p class='attribution'>💡 Your Homework Assistant, One Photo Away</p>", unsafe_allow_html=True)
 st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow_html=True)
@@ -33,25 +56,29 @@ st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow
 # 3. Setup API Client
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
+# Default engine parameters to prevent "NameError"
+model_choice = "gemini-2.0-flash-lite"
+complexity = "Standard" 
+
 st.write("---")
 
-# 5. File Upload Section
+# 4. File Upload Section
 st.subheader("1. Upload Problem")
 uploaded_file = st.file_uploader("Upload an image (Handwritten or Printed)", type=["png", "jpg", "jpeg"])
 
-# 6. Solving Process (Only triggered if file is uploaded)
+# 5. Solving Process
 if uploaded_file:
     # Preview image
     img = Image.open(uploaded_file)
     st.image(img, caption="Target Problem Loaded", use_container_width=True)
     
-    st.write("") # Spacing
+    st.write("---") # Equal spacing divider
     
-    # "Solve" Button appears here
+    # "Solve" Button logic
     if st.button("🚀 Solve"):
         with st.spinner("Analyzing image and calculating..."):
             try:
-                # Prompt Engineering for the Math Engine
+                # System instructions
                 system_instructions = (
                     f"You are a mathematical reasoning engine. Provide a {complexity} solution. "
                     "Follow this structure:\n"
@@ -69,7 +96,6 @@ if uploaded_file:
                 )
                 
                 # Display Result
-                st.markdown("---")
                 st.subheader("2. Solution Report")
                 st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
@@ -78,9 +104,6 @@ if uploaded_file:
 else:
     st.info("Please upload a problem image to unlock the Solve button.")
 
-# 7. Technical Footer
+# 6. Technical Footer
 st.markdown("---")
-
 st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
-
-
