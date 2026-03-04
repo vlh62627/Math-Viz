@@ -32,8 +32,7 @@ col_opt1, col_opt2 = st.columns(2)
 with col_opt1:
     model_choice = st.selectbox(
         "🧠 Select Reasoning Engine", 
-        ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemma-3-27b-it"],
-        help="Gemini is faster; Gemma offers a different reasoning perspective."
+        ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemma-3-27b-it"]
     )
 with col_opt2:
     complexity = st.select_slider("Explanation Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
@@ -41,7 +40,6 @@ with col_opt2:
 # 4. Input Section
 st.subheader("1. Provide Problem Image")
 
-# Reset logic: If "Clear" is clicked, we reset the uploader keys
 if 'reset_key' not in st.session_state:
     st.session_state.reset_key = 0
 
@@ -57,21 +55,17 @@ source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
 if source_file:
-    # Image compression
     img = Image.open(source_file)
     max_size = (1024, 1024)
-    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+    # img.thumbnail(max_size, Image.Resampling.LANCZOS)
     
-    # Display Previews
     st.image(img, width=150) 
     st.caption("Target Problem Loaded")
-    # st.image(img, use_container_width=True)
+    st.image(img, use_container_width=True)
     
     st.write("---") 
     
-    # Two columns for Action Buttons
     btn_col1, btn_col2 = st.columns([4, 1])
-    
     with btn_col1:
         solve_clicked = st.button("🚀 Solve")
     with btn_col2:
@@ -82,8 +76,12 @@ if source_file:
     if solve_clicked:
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
+                # --- OCR IMPROVEMENTS ---
                 instructions = (
                     f"You are a mathematical reasoning engine. Provide a {complexity} solution. "
+                    "CORE OCR INSTRUCTION: The expression in the image is written in a single horizontal line. "
+                    "Do NOT interpret horizontal lines (like notebook paper lines) as fraction bars. "
+                    "Treat the '÷' symbol as a standard division operator for the numbers immediately surrounding it. "
                     "If the image is blurry or not math-related, respond ONLY with: 'ERROR_NOT_READABLE'. "
                     "Structure: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
                 )
