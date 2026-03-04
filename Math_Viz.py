@@ -46,14 +46,14 @@ source_file = camera_file if camera_file is not None else uploaded_file
 # 5. Solving Process
 if source_file:
     # Logic to show a small preview above the text
-    # img = Image.open(source_file)
+    img = Image.open(source_file)
     
     # Display small thumbnail first
     st.image(img, width=150) 
     st.caption("Target Problem Loaded")
     
     # Display full preview below it
-    st.image(img, use_container_width=True)
+    # st.image(img, use_container_width=True)
     
     st.write("---") 
     
@@ -94,4 +94,5 @@ else:
 # 6. Technical Footer
 st.markdown("---")
 st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
+
 
