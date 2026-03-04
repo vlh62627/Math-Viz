@@ -4,7 +4,7 @@ from google.genai import types
 from PIL import Image
 
 # 1. Page Configuration
-st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="left")
+st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="wide")
 
 # Custom CSS for the Laboratory look
 st.markdown("""
@@ -81,3 +81,4 @@ else:
 st.markdown("---")
 
 st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
+
