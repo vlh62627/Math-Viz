@@ -7,7 +7,7 @@ import time
 # 1. Page Configuration
 st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="wide")
 
-# Custom CSS for Left Alignment and Spacing
+# Custom CSS
 st.markdown("""
     <style>
     .main { background-color: #fcfcfc; }
@@ -26,20 +26,26 @@ st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow
 # 3. Setup API Client
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-model_choice = "gemma-3-27b-it"
-complexity = "Standard" 
-
+# --- NEW: Model Switcher ---
 st.write("---")
+col_opt1, col_opt2 = st.columns(2)
+with col_opt1:
+    model_choice = st.selectbox(
+        "🧠 Select Reasoning Engine", 
+        ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemma-3-27b-it"],
+        help="Gemini is faster; Gemma offers a different reasoning perspective."
+    )
+with col_opt2:
+    complexity = st.select_slider("Explanation Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
 
-# 4. Input Section (Upload or Camera)
+# 4. Input Section
 st.subheader("1. Provide Problem Image")
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 
 with tab1:
-    uploaded_file = st.file_uploader("Upload an image (Handwritten or Printed)", type=["png", "jpg", "jpeg"], key="uploader")
-
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="uploader")
 with tab2:
-    camera_file = st.camera_input("Take a picture of the problem")
+    camera_file = st.camera_input("Take a picture")
 
 source_file = camera_file if camera_file is not None else uploaded_file
 
@@ -47,56 +53,54 @@ source_file = camera_file if camera_file is not None else uploaded_file
 if source_file:
     img = Image.open(source_file)
     
-    # --- FIX 1: IMAGE COMPRESSION TO SAVE TOKENS ---
-    # Resizing ensures we don't hit the 'input_token_count' limit as easily
+    # Image compression to save tokens/quota
     max_size = (1024, 1024)
     img.thumbnail(max_size, Image.Resampling.LANCZOS)
     
     st.image(img, width=150) 
     st.caption("Target Problem Loaded")
-    # st.image(img, use_container_width=True)
+    st.image(img, use_container_width=True)
     
     st.write("---") 
     
     if st.button("🚀 Solve"):
-        with st.spinner("Analyzing image..."):
+        with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
-                system_instructions = (
+                # Base Prompt
+                instructions = (
                     f"You are a mathematical reasoning engine. Provide a {complexity} solution. "
-                    "VALIDATION RULE: If the image is blurry, unreadable, or does not contain a mathematical problem, "
-                    "respond ONLY with: 'ERROR_NOT_READABLE'. "
-                    "Otherwise, follow this structure:\n"
-                    "## PROBLEM IDENTIFICATION\n"
-                    "## THEOREMS & FORMULAS\n"
-                    "## STEP-BY-STEP DERIVATION\n"
-                    "## FINAL RESULT (in LaTeX)"
+                    "If the image is blurry or not math-related, respond ONLY with: 'ERROR_NOT_READABLE'. "
+                    "Structure: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
                 )
 
-                # --- FIX 2: RETRY LOGIC / QUOTA ERROR HANDLING ---
-                response = client.models.generate_content(
-                    model=model_choice,
-                    config=types.GenerateContentConfig(system_instruction=system_instructions),
-                    contents=[img]
-                )
+                # --- NEW: Adaptive API Logic ---
+                if "gemini" in model_choice:
+                    # Gemini uses system_instruction
+                    response = client.models.generate_content(
+                        model=model_choice,
+                        config=types.GenerateContentConfig(system_instruction=instructions),
+                        contents=[img]
+                    )
+                else:
+                    # Gemma uses combined prompt in contents
+                    response = client.models.generate_content(
+                        model=model_choice,
+                        contents=[instructions, img]
+                    )
                 
                 if "ERROR_NOT_READABLE" in response.text:
-                    st.warning("⚠️ Image not readable. Please provide another clear mathematical image.")
+                    st.warning("⚠️ Image not readable. Please provide a clear mathematical image.")
                 else:
-                    st.subheader("2. Solution Report")
+                    st.subheader(f"2. Solution Report ({model_choice})")
                     st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
             except Exception as e:
-                # Catching Rate Limit (429) specifically
                 if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                    st.error("🚨 **Rate Limit Reached:** The Free Tier engine is busy. Please wait about 30-60 seconds and try clicking 'Solve' again.")
-                    st.info("Tip: Try using a smaller/cropped image to save tokens.")
+                    st.error("🚨 Rate Limit Reached. Please wait 60 seconds.")
                 else:
                     st.error(f"Engine Error: {e}")
 else:
     st.info("👋 Ready for a new problem! Upload a file or take a photo to begin.")
 
-# 6. Technical Footer
 st.markdown("---")
-st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
-
-
+st.caption(f"Status: {model_choice} Active | Multimodal Inference Enabled")
