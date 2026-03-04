@@ -2,6 +2,7 @@ import streamlit as st
 from google import genai
 from google.genai import types
 from PIL import Image
+import time
 
 # 1. Page Configuration
 st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="wide")
@@ -40,27 +41,26 @@ with tab1:
 with tab2:
     camera_file = st.camera_input("Take a picture of the problem")
 
-# Combine inputs: prioritize camera if used, otherwise file upload
 source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
 if source_file:
-    # Logic to show a small preview above the text
     img = Image.open(source_file)
     
-    # Display small thumbnail first
+    # --- FIX 1: IMAGE COMPRESSION TO SAVE TOKENS ---
+    # Resizing ensures we don't hit the 'input_token_count' limit as easily
+    max_size = (1024, 1024)
+    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+    
     st.image(img, width=150) 
     st.caption("Target Problem Loaded")
-    
-    # Display full preview below it
-    # st.image(img, use_container_width=True)
+    st.image(img, use_container_width=True)
     
     st.write("---") 
     
     if st.button("🚀 Solve"):
         with st.spinner("Analyzing image..."):
             try:
-                # System instructions with validation
                 system_instructions = (
                     f"You are a mathematical reasoning engine. Provide a {complexity} solution. "
                     "VALIDATION RULE: If the image is blurry, unreadable, or does not contain a mathematical problem, "
@@ -72,13 +72,13 @@ if source_file:
                     "## FINAL RESULT (in LaTeX)"
                 )
 
+                # --- FIX 2: RETRY LOGIC / QUOTA ERROR HANDLING ---
                 response = client.models.generate_content(
                     model=model_choice,
                     config=types.GenerateContentConfig(system_instruction=system_instructions),
                     contents=[img]
                 )
                 
-                # Check for readability error
                 if "ERROR_NOT_READABLE" in response.text:
                     st.warning("⚠️ Image not readable. Please provide another clear mathematical image.")
                 else:
@@ -86,13 +86,15 @@ if source_file:
                     st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
             except Exception as e:
-                st.error(f"Engine Error: {e}")
+                # Catching Rate Limit (429) specifically
+                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                    st.error("🚨 **Rate Limit Reached:** The Free Tier engine is busy. Please wait about 30-60 seconds and try clicking 'Solve' again.")
+                    st.info("Tip: Try using a smaller/cropped image to save tokens.")
+                else:
+                    st.error(f"Engine Error: {e}")
 else:
-    # Reset state on page refresh
     st.info("👋 Ready for a new problem! Upload a file or take a photo to begin.")
 
 # 6. Technical Footer
 st.markdown("---")
 st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
-
-
