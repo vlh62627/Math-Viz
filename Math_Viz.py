@@ -30,31 +30,41 @@ complexity = "Standard"
 
 st.write("---")
 
-# 4. File Upload Section
-st.subheader("1. Upload Problem")
+# 4. Input Section (Upload or Camera)
+st.subheader("1. Provide Problem Image")
+tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 
-# Using a session state key for the uploader allows us to clear it if needed
-uploaded_file = st.file_uploader(
-    "Upload an image (Handwritten or Printed)", 
-    type=["png", "jpg", "jpeg"],
-    key="math_image_uploader"
-)
+with tab1:
+    uploaded_file = st.file_uploader("Upload an image (Handwritten or Printed)", type=["png", "jpg", "jpeg"], key="uploader")
+
+with tab2:
+    camera_file = st.camera_input("Take a picture of the problem")
+
+# Combine inputs: prioritize camera if used, otherwise file upload
+source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
-if uploaded_file:
-    img = Image.open(uploaded_file)
-    st.image(img, caption="Target Problem Loaded", use_container_width=True)
+if source_file:
+    # Logic to show a small preview above the text
+    img = Image.open(source_file)
     
-    st.write("---")
+    # Display small thumbnail first
+    st.image(img, width=150) 
+    st.caption("Target Problem Loaded")
+    
+    # Display full preview below it
+    st.image(img, use_container_width=True)
+    
+    st.write("---") 
     
     if st.button("🚀 Solve"):
         with st.spinner("Analyzing image..."):
             try:
-                # System instructions with strict validation rules
+                # System instructions with validation
                 system_instructions = (
                     f"You are a mathematical reasoning engine. Provide a {complexity} solution. "
                     "VALIDATION RULE: If the image is blurry, unreadable, or does not contain a mathematical problem, "
-                    "respond ONLY with the phrase: 'ERROR_NOT_READABLE'. "
+                    "respond ONLY with: 'ERROR_NOT_READABLE'. "
                     "Otherwise, follow this structure:\n"
                     "## PROBLEM IDENTIFICATION\n"
                     "## THEOREMS & FORMULAS\n"
@@ -68,7 +78,7 @@ if uploaded_file:
                     contents=[img]
                 )
                 
-                # Validation Logic
+                # Check for readability error
                 if "ERROR_NOT_READABLE" in response.text:
                     st.warning("⚠️ Image not readable. Please provide another clear mathematical image.")
                 else:
@@ -78,8 +88,8 @@ if uploaded_file:
             except Exception as e:
                 st.error(f"Engine Error: {e}")
 else:
-    # This state is triggered on page refresh or when no file is present
-    st.info("👋 Ready for a new problem! Please upload an image to begin.")
+    # Reset state on page refresh
+    st.info("👋 Ready for a new problem! Upload a file or take a photo to begin.")
 
 # 6. Technical Footer
 st.markdown("---")
