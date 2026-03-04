@@ -57,11 +57,11 @@ source_file = camera_file if camera_file is not None else uploaded_file
 if source_file:
     img = Image.open(source_file)
     max_size = (1024, 1024)
-    # img.thumbnail(max_size, Image.Resampling.LANCZOS)
+    img.thumbnail(max_size, Image.Resampling.LANCZOS)
     
     st.image(img, width=150) 
     st.caption("Target Problem Loaded")
-    st.image(img, use_container_width=True)
+    # st.image(img, use_container_width=True)
     
     st.write("---") 
     
@@ -114,3 +114,4 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
+
