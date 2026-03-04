@@ -54,7 +54,7 @@ if source_file:
     
     st.image(img, width=150) 
     st.caption("Target Problem Loaded")
-    st.image(img, use_container_width=True)
+    # st.image(img, use_container_width=True)
     
     st.write("---") 
     
@@ -98,3 +98,4 @@ else:
 # 6. Technical Footer
 st.markdown("---")
 st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
+
