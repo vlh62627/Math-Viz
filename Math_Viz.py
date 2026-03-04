@@ -26,7 +26,7 @@ st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow
 # 3. Setup API Client
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-# --- NEW: Model Switcher ---
+# --- Model Selection Area ---
 st.write("---")
 col_opt1, col_opt2 = st.columns(2)
 with col_opt1:
@@ -40,49 +40,61 @@ with col_opt2:
 
 # 4. Input Section
 st.subheader("1. Provide Problem Image")
+
+# Reset logic: If "Clear" is clicked, we reset the uploader keys
+if 'reset_key' not in st.session_state:
+    st.session_state.reset_key = 0
+
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 
 with tab1:
-    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="uploader")
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_key}")
+
 with tab2:
-    camera_file = st.camera_input("Take a picture")
+    camera_file = st.camera_input("Take a picture", key=f"camera_{st.session_state.reset_key}")
 
 source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
 if source_file:
+    # Image compression
     img = Image.open(source_file)
-    
-    # Image compression to save tokens/quota
     max_size = (1024, 1024)
     img.thumbnail(max_size, Image.Resampling.LANCZOS)
     
+    # Display Previews
     st.image(img, width=150) 
     st.caption("Target Problem Loaded")
-    st.image(img, use_container_width=True)
+    # st.image(img, use_container_width=True)
     
     st.write("---") 
     
-    if st.button("🚀 Solve"):
+    # Two columns for Action Buttons
+    btn_col1, btn_col2 = st.columns([4, 1])
+    
+    with btn_col1:
+        solve_clicked = st.button("🚀 Solve")
+    with btn_col2:
+        if st.button("🔄 Reset"):
+            st.session_state.reset_key += 1
+            st.rerun()
+
+    if solve_clicked:
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
-                # Base Prompt
                 instructions = (
                     f"You are a mathematical reasoning engine. Provide a {complexity} solution. "
                     "If the image is blurry or not math-related, respond ONLY with: 'ERROR_NOT_READABLE'. "
                     "Structure: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
                 )
 
-                # --- NEW: Adaptive API Logic ---
                 if "gemini" in model_choice:
-                    # Gemini uses system_instruction
                     response = client.models.generate_content(
                         model=model_choice,
                         config=types.GenerateContentConfig(system_instruction=instructions),
                         contents=[img]
                     )
                 else:
-                    # Gemma uses combined prompt in contents
                     response = client.models.generate_content(
                         model=model_choice,
                         contents=[instructions, img]
@@ -100,7 +112,7 @@ if source_file:
                 else:
                     st.error(f"Engine Error: {e}")
 else:
-    st.info("👋 Ready for a new problem! Upload a file or take a photo to begin.")
+    st.info("👋 Welcome! The engine is clear. Upload a file or take a photo to begin.")
 
 st.markdown("---")
-st.caption(f"Status: {model_choice} Active | Multimodal Inference Enabled")
+st.caption(f"Status: {model_choice} Active")
