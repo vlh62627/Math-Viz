@@ -26,7 +26,7 @@ st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow
 # 3. Setup API Client
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-model_choice = "gemini-2.0-flash-lite"
+model_choice = "gemma-3-27b-it"
 complexity = "Standard" 
 
 st.write("---")
@@ -98,4 +98,5 @@ else:
 # 6. Technical Footer
 st.markdown("---")
 st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
+
 
