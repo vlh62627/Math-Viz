@@ -4,7 +4,7 @@ from google.genai import types
 from PIL import Image
 
 # 1. Page Configuration
-st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="centered")
+st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="left")
 
 # Custom CSS for the Laboratory look
 st.markdown("""
@@ -31,14 +31,6 @@ st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow
 
 # 3. Setup API Client
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-
-# 4. Engine Parameters
-with st.expander("🛠️ Advanced Engine Settings"):
-    col_a, col_b = st.columns(2)
-    with col_a:
-        model_choice = st.selectbox("LLM Model", ["gemini-2.0-flash-lite", "gemini-2.0-flash"])
-    with col_b:
-        complexity = st.select_slider("Reasoning Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
 
 st.write("---")
 
@@ -87,4 +79,5 @@ else:
 
 # 7. Technical Footer
 st.markdown("---")
+
 st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
