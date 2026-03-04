@@ -27,6 +27,7 @@ st.markdown("""
 
 # 2. Header & Attribution
 st.markdown("<h1 class='math-header'>📐 VizAI Math Engine</h1>", unsafe_allow_html=True)
+st.markdown("<p class='attribution'>💡 Your Homework Assistant, One Photo Away</p>", unsafe_allow_html=True)
 st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow_html=True)
 
 # 3. Setup API Client
@@ -81,4 +82,5 @@ else:
 st.markdown("---")
 
 st.caption("Status: LLM Engine Ready | Multimodal Inference Active")
+
 
