@@ -68,17 +68,10 @@ st.subheader("1. Provide Problem (Image or Text)")
 if 'reset_key' not in st.session_state:
     st.session_state.reset_key = 0
 
-# --- Text Input with LaTeX Preview ---
-typed_problem = st.text_area("Type your math problem here (Use $$ for LaTeX):", 
-                             placeholder="e.g., \\int_{0}^{\\pi/2} \\frac{\\ln(1+\\sin x)}{\\sin x + \\cos x} dx",
+# --- NEW: Added Text Input Area ---
+typed_problem = st.text_area("Type your math problem here (LaTeX supported):", 
+                             placeholder="e.g., Integrate ln(1+sin x)/(sin x + cos x) from 0 to pi/2",
                              key=f"text_{st.session_state.reset_key}")
-
-if typed_problem:
-    with st.expander("👀 Math Text Preview", expanded=True):
-        try:
-            st.latex(typed_problem)
-        except Exception:
-            st.info("💡 Tip: Use standard LaTeX syntax for a better preview.")
 
 st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
@@ -93,6 +86,7 @@ with tab2:
 source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
+# Check if either a file or text is provided
 if source_file or typed_problem:
     content_to_send = []
     
@@ -100,9 +94,8 @@ if source_file or typed_problem:
         img = Image.open(source_file)
         max_size = (1024, 1024)
         img.thumbnail(max_size, Image.Resampling.LANCZOS)
-        # Image Preview
-        with st.expander("🖼️ Image Preview", expanded=True):
-            st.image(img, use_container_width=True)
+        st.image(img, width=150) 
+        st.caption("Target Problem Loaded from Image")
         content_to_send.append(img)
     
     if typed_problem:
@@ -121,9 +114,8 @@ if source_file or typed_problem:
     if solve_clicked:
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
-                # Same expert instructions for calculus accuracy
                 instructions = (
-                    f"You are an expert calculus reasoning engine. Perform a deep research and through validation. Analyse the answer before showing it. Provide a {complexity} solution. "
+                    f"You are an expert calculus reasoning engine. Provide a {complexity} solution. "
                     "For integrals involving ln(1+sin x) / (sin x + cos x): "
                     "1. Use the property integral(f(x)) = integral(f(pi/2 - x)). "
                     "2. Use the identity sin x + cos x = sqrt(2)sin(x + pi/4). "
@@ -138,6 +130,7 @@ if source_file or typed_problem:
                         contents=content_to_send
                     )
                 else:
+                    # For Gemma, we combine the instructions and content
                     response = client.models.generate_content(
                         model=model_choice,
                         contents=[instructions] + content_to_send
@@ -148,11 +141,6 @@ if source_file or typed_problem:
                 else:
                     st.subheader(f"2. Solution Report ({model_choice})")
                     st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
-                    
-                    # --- NEW: Copyable LaTeX Block ---
-                    st.write("---")
-                    st.subheader("📋 Copy Result (LaTeX)")
-                    st.code(response.text, language="markdown")
                 
             except Exception as e:
                 if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
