@@ -115,7 +115,8 @@ if active_content:
     if st.button("🚀 Solve"):
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
-               instructions = (
+
+                instructions = (
                     "You are an elite mathematics reasoning engine and university-level math professor. "
                     "Your task is to analyze, validate, and solve the provided math problem with extreme accuracy.\n\n"
 
@@ -141,7 +142,7 @@ if active_content:
                     "Provide the final answer using proper mathematical notation (LaTeX if needed).\n\n"
 
                     f"Explanation depth: {complexity}."
-                    )
+                )
 
                 if "gemini" in model_choice:
                     response = client.models.generate_content(
@@ -154,12 +155,15 @@ if active_content:
                         model=model_choice,
                         contents=[instructions] + active_content
                     )
-                
+
                 st.subheader("2. Solution Report")
-                st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
-                
+                st.markdown(
+                    f"<div class='result-box'>{response.text}</div>",
+                    unsafe_allow_html=True
+                )
+
                 st.write("---")
-                # This button now calls the hard_reset function to wipe the text box
+
                 if st.button("🔄 Solve another problem"):
                     hard_reset()
 
@@ -170,4 +174,5 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
+
 
