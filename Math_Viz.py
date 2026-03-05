@@ -167,7 +167,8 @@ if active_content:
 
                 st.write("---")
 
-                if st.button("🔄 New Problem", on_click=hard_reset)
+                if st.button("🔄 Solve another problem"):
+                    hard_reset()
 
             except Exception as e:
                 st.error(f"Engine Error: {e}")
@@ -176,6 +177,7 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
+
 
 
 
