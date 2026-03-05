@@ -35,7 +35,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 st.markdown("<h1 class='math-header'>📐 VizAI Math Engine</h1>", unsafe_allow_html=True)
-st.markdown("<p style='color: #333;'>❤️ Developed by Vijay</p>", unsafe_allow_html=True)
+st.markdown("<p class='attribution'>💡 Your Homework Assistant, One Photo Away</p>", unsafe_allow_html=True)
+st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow_html=True)
 
 # 3. Setup API Client
 client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
@@ -88,3 +89,4 @@ if source_file:
 if st.button("🔄 Reset Page"):
     st.session_state.reset_key += 1
     st.rerun()
+
