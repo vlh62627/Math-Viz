@@ -116,32 +116,32 @@ if active_content:
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
                instructions = (
-    "You are an elite mathematics reasoning engine and university-level math professor. "
-    "Your task is to analyze, validate, and solve the provided math problem with extreme accuracy.\n\n"
+                    "You are an elite mathematics reasoning engine and university-level math professor. "
+                    "Your task is to analyze, validate, and solve the provided math problem with extreme accuracy.\n\n"
 
-    "PROCESS:\n"
-    "1. Validate the problem input (text or image) and interpret the mathematical intent.\n"
-    "2. Identify the mathematical domain (arithmetic, algebra, calculus, geometry, statistics, etc.).\n"
-    "3. Detect possible ambiguities or misread symbols and internally correct them if obvious.\n"
-    "4. Solve the problem step-by-step using mathematically rigorous logic.\n"
-    "5. Double-check the result for correctness.\n"
-    "6. Provide the final verified answer.\n\n"
+                    "PROCESS:\n"
+                    "1. Validate the problem input (text or image) and interpret the mathematical intent.\n"
+                    "2. Identify the mathematical domain (arithmetic, algebra, calculus, geometry, statistics, etc.).\n"
+                    "3. Detect possible ambiguities or misread symbols and internally correct them if obvious.\n"
+                    "4. Solve the problem step-by-step using mathematically rigorous logic.\n"
+                    "5. Double-check the result for correctness.\n"
+                    "6. Provide the final verified answer.\n\n"
 
-    "OUTPUT RULES:\n"
-    "- If the problem is SIMPLE arithmetic (e.g., 2+3, 5×7), output ONLY the final result.\n"
-    "- For medium or complex problems, use this structure:\n\n"
+                    "OUTPUT RULES:\n"
+                    "- If the problem is SIMPLE arithmetic (e.g., 2+3, 5×7), output ONLY the final result.\n"
+                    "- For medium or complex problems, use this structure:\n\n"
 
-    "## PROBLEM IDENTIFICATION\n"
-    "Explain what type of math problem it is.\n\n"
+                    "## PROBLEM IDENTIFICATION\n"
+                    "Explain what type of math problem it is.\n\n"
 
-    "## DERIVATION\n"
-    "Show clear step-by-step reasoning.\n\n"
+                    "## DERIVATION\n"
+                    "Show clear step-by-step reasoning.\n\n"
 
-    "## FINAL RESULT\n"
-    "Provide the final answer using proper mathematical notation (LaTeX if needed).\n\n"
+                    "## FINAL RESULT\n"
+                    "Provide the final answer using proper mathematical notation (LaTeX if needed).\n\n"
 
-    f"Explanation depth: {complexity}."
-)
+                    f"Explanation depth: {complexity}."
+                    )
 
                 if "gemini" in model_choice:
                     response = client.models.generate_content(
