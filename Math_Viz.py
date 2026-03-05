@@ -7,14 +7,40 @@ import time
 # 1. Page Configuration
 st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="wide")
 
-# Custom CSS
+# Custom CSS for Mobile Readability and Contrast
 st.markdown("""
     <style>
     .main { background-color: #fcfcfc; }
     .math-header { color: #1E3A8A; font-family: 'Helvetica', sans-serif; margin-bottom: 5px; text-align: left; }
     .attribution { color: #555; text-align: left; font-size: 0.95rem; margin: 0px; padding-bottom: 5px; }
-    .stButton>button { width: 100%; border-radius: 10px; height: 3.5em; background-color: #1E3A8A; color: white; font-weight: bold; font-size: 1.1rem; }
-    .result-box { background-color: #ffffff; padding: 25px; border-radius: 10px; border: 1px solid #ddd; box-shadow: 2px 2px 10px rgba(0,0,0,0.05); }
+    
+    /* Button Styling */
+    .stButton>button { 
+        width: 100%; 
+        border-radius: 10px; 
+        height: 3.5em; 
+        background-color: #1E3A8A; 
+        color: white; 
+        font-weight: bold; 
+        font-size: 1.1rem; 
+    }
+    
+    /* FIX: Result Box with High Contrast for Mobile */
+    .result-box { 
+        background-color: #ffffff; 
+        padding: 25px; 
+        border-radius: 10px; 
+        border: 2px solid #ddd; /* Darker border */
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.1); 
+        color: #111111; /* Very dark charcoal for maximum readability */
+        font-size: 1.05rem;
+        line-height: 1.6;
+        font-family: 'Helvetica', Arial, sans-serif;
+    }
+    
+    /* Ensuring LaTeX and markdown headers inside the box are also dark */
+    .result-box h2, .result-box h3 { color: #1E3A8A; }
+    .result-box p, .result-box li { color: #111111; font-weight: 450; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -61,7 +87,6 @@ if source_file:
     
     st.image(img, width=150) 
     st.caption("Target Problem Loaded")
-    # st.image(img, use_container_width=True)
     
     st.write("---") 
     
@@ -76,7 +101,6 @@ if source_file:
     if solve_clicked:
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
-                # --- OCR IMPROVEMENTS ---
                 instructions = (
                     f"You are a mathematical reasoning engine. Provide a {complexity} solution. "
                     "CORE OCR INSTRUCTION: The expression in the image is written in a single horizontal line. "
@@ -102,6 +126,7 @@ if source_file:
                     st.warning("⚠️ Image not readable. Please provide a clear mathematical image.")
                 else:
                     st.subheader(f"2. Solution Report ({model_choice})")
+                    # The container class 'result-box' now enforces dark font colors
                     st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
             except Exception as e:
@@ -114,5 +139,3 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
-
-
