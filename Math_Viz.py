@@ -12,8 +12,6 @@ st.markdown("""
     .main { background-color: #fcfcfc; }
     .math-header { color: #1E3A8A; font-family: 'Helvetica', sans-serif; margin-bottom: 5px; text-align: left; }
     .attribution { color: #555; text-align: left; font-size: 0.95rem; margin: 0px; padding-bottom: 5px; }
-    
-    /* Button Styling */
     .stButton>button { 
         width: 100%; 
         border-radius: 10px; 
@@ -23,8 +21,6 @@ st.markdown("""
         font-weight: bold; 
         font-size: 1.1rem; 
     }
-    
-    /* Result Box with High Contrast */
     .result-box { 
         background-color: #ffffff; 
         padding: 25px; 
@@ -35,7 +31,6 @@ st.markdown("""
         font-size: 1.05rem;
         line-height: 1.6;
     }
-    .result-box h2, .result-box h3 { color: #1E3A8A; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -58,56 +53,59 @@ with col_opt1:
 with col_opt2:
     complexity = st.select_slider("Explanation Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
 
-# 4. HARD RESET LOGIC
-# This counter forces Streamlit to generate entirely new widgets when incremented
-if "reset_id" not in st.session_state:
-    st.session_state.reset_id = 0
+# 4. MUTUALLY EXCLUSIVE & HARD RESET LOGIC
+# This counter forces Streamlit to regenerate entirely new widgets when incremented
+if "version" not in st.session_state:
+    st.session_state.version = 0
 
-def clear_and_reset():
-    st.session_state.reset_id += 1
-    # Clear all other session variables
+def hard_reset():
+    # Incrementing the version changes all widget keys, forcing a "Brand New" state
+    st.session_state.version += 1
+    # Clear all other session data
     for key in list(st.session_state.keys()):
-        if key != "reset_id":
+        if key != "version":
             del st.session_state[key]
     st.rerun()
 
 st.subheader("1. Provide Problem")
 
-# Assigning unique keys based on the reset_id
-text_key = f"text_v{st.session_state.reset_id}"
-file_key = f"file_v{st.session_state.reset_id}"
-cam_key = f"cam_v{st.session_state.reset_id}"
+# Assign unique keys based on the current version
+current_text_key = f"text_v{st.session_state.version}"
+current_uploader_key = f"uploader_v{st.session_state.version}"
+current_camera_key = f"camera_v{st.session_state.version}"
 
-# Mutual Exclusion Check
-has_image = (st.session_state.get(file_key) is not None) or (st.session_state.get(cam_key) is not None)
-has_text = st.session_state.get(text_key, "").strip() != ""
+# Disabling logic check
+has_img = (st.session_state.get(current_uploader_key) is not None) or (st.session_state.get(current_camera_key) is not None)
+has_text = st.session_state.get(current_text_key, "").strip() != ""
 
-# Text Input (Disabled if image provided)
+# Text Input
 typed_problem = st.text_area("Type your math problem here:", 
-                             placeholder="e.g., 2+3 or Solve x^2 + 5x + 6 = 0",
-                             key=text_key,
-                             disabled=has_image)
+                             placeholder="e.g., 2+3",
+                             key=current_text_key,
+                             disabled=has_img)
 
 st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
-# Image Tabs (Disabled if text provided)
+# Image Tabs
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 with tab1:
-    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key=file_key, disabled=has_text)
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key=current_uploader_key, disabled=has_text)
 with tab2:
-    camera_file = st.camera_input("Take a picture", key=cam_key, disabled=has_text)
+    camera_file = st.camera_input("Take a picture", key=current_camera_key, disabled=has_text)
 
 source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
 active_content = []
+# Ensure logic only processes one input type
 if source_file and not has_text:
     img = Image.open(source_file)
     max_size = (1024, 1024)
     img.thumbnail(max_size, Image.Resampling.LANCZOS)
     st.image(img, width=150) 
+    st.caption("Target Problem Loaded from Image")
     active_content.append(img)
-elif typed_problem and not has_image:
+elif typed_problem and not has_img:
     active_content.append(f"TEXT PROBLEM: {typed_problem}")
 
 if active_content:
@@ -117,8 +115,9 @@ if active_content:
             try:
                 instructions = (
                     f"You are a math professor. Provide a {complexity} solution. "
-                    "For simple arithmetic like '2+3', provide ONLY the answer. "
-                    "For calculus/algebra, provide full steps: ## PROBLEM IDENTIFICATION, ## DERIVATION, ## FINAL RESULT."
+                    "ADAPTIVE DETAIL: If the problem is simple arithmetic like '2+3', "
+                    "provide ONLY the result. For complex problems, use full structure: "
+                    "## PROBLEM IDENTIFICATION, ## DERIVATION, ## FINAL RESULT (LaTeX)."
                 )
 
                 if "gemini" in model_choice:
@@ -137,14 +136,14 @@ if active_content:
                 st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
                 st.write("---")
-                # Clicking this clears EVERYTHING
+                # This button now calls the hard_reset function to wipe the text box
                 if st.button("🔄 Solve another problem"):
-                    clear_and_reset()
+                    hard_reset()
 
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Engine Error: {e}")
 else:
-    st.info("👋 Provide a problem via text or image to begin.")
+    st.info("👋 Welcome! Type a problem OR upload an image to begin.")
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
