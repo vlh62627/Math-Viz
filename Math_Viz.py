@@ -32,8 +32,6 @@ st.markdown("""
         line-height: 1.6;
         font-family: 'Helvetica', Arial, sans-serif;
     }
-    .result-box h2, .result-box h3 { color: #1E3A8A; }
-    .result-box p, .result-box li { color: #111111; font-weight: 450; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -56,90 +54,87 @@ with col_opt1:
 with col_opt2:
     complexity = st.select_slider("Explanation Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
 
-# 4. Input Section
-st.subheader("1. Provide Problem (Image or Text)")
+# 4. MUTUALLY EXCLUSIVE INPUT LOGIC
+st.subheader("1. Provide Problem")
 
-# Use query params to facilitate a "Fresh Start" refresh
-if 'refresh' in st.query_params:
-    st.query_params.clear()
+# Initialize Session State
+if "input_mode" not in st.session_state:
+    st.session_state.input_mode = None
+
+def reset_all():
+    for key in st.session_state.keys():
+        del st.session_state[key]
     st.rerun()
 
+# Determine disabling logic
+disable_text = st.session_state.get("uploader") is not None or st.session_state.get("camera") is not None
+disable_upload = st.session_state.get("text_input") != "" and st.session_state.get("text_input") is not None
+
+# Text Input
 typed_problem = st.text_area("Type your math problem here:", 
-                             placeholder="e.g., 2+3 or Integrate ln(1+sin x)/(sin x + cos x) from 0 to pi/2",
-                             key="text_input")
+                             placeholder="e.g., 2+3",
+                             key="text_input",
+                             disabled=disable_text)
 
 st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
+# Image Tabs
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 with tab1:
-    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="uploader")
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="uploader", disabled=disable_upload)
 with tab2:
-    camera_file = st.camera_input("Take a picture", key="camera")
+    camera_file = st.camera_input("Take a picture", key="camera", disabled=disable_upload)
 
 source_file = camera_file if camera_file is not None else uploaded_file
 
-# 5. Solving Process logic
-if source_file or typed_problem:
-    content_to_send = []
-    
-    if source_file:
-        img = Image.open(source_file)
-        max_size = (1024, 1024)
-        img.thumbnail(max_size, Image.Resampling.LANCZOS)
-        st.image(img, width=50) 
-        st.caption("Target Problem Loaded from Image")
-        content_to_send.append(img)
-    
-    if typed_problem:
-        content_to_send.append(f"TEXT PROBLEM TO SOLVE: {typed_problem}")
+# 5. Solving Process
+# Logic: Only use one or the other, never both
+active_content = []
+if source_file and not disable_upload:
+    img = Image.open(source_file)
+    max_size = (1024, 1024)
+    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+    st.image(img, width=150) 
+    st.caption("Target Problem Loaded from Image")
+    active_content.append(img)
+elif typed_problem and not disable_text:
+    active_content.append(f"TEXT PROBLEM TO SOLVE: {typed_problem}")
 
+if active_content:
     st.write("---") 
-    
-    # Solve button appears only when data is present
     if st.button("🚀 Solve"):
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
-                # Instructions updated to handle simplicity vs complexity
                 instructions = (
                     f"You are an expert mathematics professor. Provide a {complexity} solution. "
                     "ADAPTIVE REASONING: If the problem is a simple arithmetic calculation (e.g., 2+3), "
-                    "provide ONLY the result or a very brief explanation. For complex calculus or "
-                    "theorems, follow the full structure. "
-                    "For integrals involving ln(1+sin x) / (sin x + cos x): "
-                    "1. Use the property integral(f(x)) = integral(f(pi/2 - x)). "
-                    "2. Use the identity sin x + cos x = sqrt(2)sin(x + pi/4). "
-                    "3. Do NOT simplify to zero unless strictly proven. "
-                    "Structure (for complex only): ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
+                    "provide ONLY the result or a very brief explanation. For complex calculus, "
+                    "use the full structure: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
                 )
 
                 if "gemini" in model_choice:
                     response = client.models.generate_content(
                         model=model_choice,
                         config=types.GenerateContentConfig(system_instruction=instructions),
-                        contents=content_to_send
+                        contents=active_content
                     )
                 else:
                     response = client.models.generate_content(
                         model=model_choice,
-                        contents=[instructions] + content_to_send
+                        contents=[instructions] + active_content
                     )
                 
-                if "ERROR_NOT_READABLE" in response.text:
-                    st.warning("⚠️ Image not readable. Please provide a clear mathematical image.")
-                else:
-                    st.subheader(f"2. Solution Report ({model_choice})")
-                    st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
+                st.subheader(f"2. Solution Report ({model_choice})")
+                st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
                 st.write("---")
-                # Reset button moved to the end and renamed
                 if st.button("🔄 Solve another problem"):
-                    st.query_params["refresh"] = "true"
-                    st.rerun()
+                    reset_all()
 
             except Exception as e:
                 st.error(f"Engine Error: {e}")
 else:
-    st.info("👋 Welcome! Type a problem above or upload an image to begin.")
+    st.info("👋 Welcome! Type a problem OR upload an image to begin.")
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
