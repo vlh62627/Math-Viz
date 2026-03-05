@@ -2,7 +2,6 @@ import streamlit as st
 from google import genai
 from google.genai import types
 from PIL import Image
-import time
 
 # 1. Page Configuration
 st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="wide")
@@ -13,8 +12,6 @@ st.markdown("""
     .main { background-color: #fcfcfc; }
     .math-header { color: #1E3A8A; font-family: 'Helvetica', sans-serif; margin-bottom: 5px; text-align: left; }
     .attribution { color: #555; text-align: left; font-size: 0.95rem; margin: 0px; padding-bottom: 5px; }
-    
-    /* Button Styling */
     .stButton>button { 
         width: 100%; 
         border-radius: 10px; 
@@ -24,8 +21,6 @@ st.markdown("""
         font-weight: bold; 
         font-size: 1.1rem; 
     }
-    
-    /* FIX: Result Box with High Contrast for Mobile */
     .result-box { 
         background-color: #ffffff; 
         padding: 25px; 
@@ -37,7 +32,6 @@ st.markdown("""
         line-height: 1.6;
         font-family: 'Helvetica', Arial, sans-serif;
     }
-    
     .result-box h2, .result-box h3 { color: #1E3A8A; }
     .result-box p, .result-box li { color: #111111; font-weight: 450; }
     </style>
@@ -65,28 +59,26 @@ with col_opt2:
 # 4. Input Section
 st.subheader("1. Provide Problem (Image or Text)")
 
-if 'reset_key' not in st.session_state:
-    st.session_state.reset_key = 0
+# Use query params to facilitate a "Fresh Start" refresh
+if 'refresh' in st.query_params:
+    st.query_params.clear()
+    st.rerun()
 
-# --- NEW: Added Text Input Area ---
-typed_problem = st.text_area("Type your math problem here (LaTeX supported):", 
-                             placeholder="e.g., Integrate ln(1+sin x)/(sin x + cos x) from 0 to pi/2",
-                             key=f"text_{st.session_state.reset_key}")
+typed_problem = st.text_area("Type your math problem here:", 
+                             placeholder="e.g., 2+3 or Integrate ln(1+sin x)/(sin x + cos x) from 0 to pi/2",
+                             key="text_input")
 
 st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
-
 with tab1:
-    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_key}")
-
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="uploader")
 with tab2:
-    camera_file = st.camera_input("Take a picture", key=f"camera_{st.session_state.reset_key}")
+    camera_file = st.camera_input("Take a picture", key="camera")
 
 source_file = camera_file if camera_file is not None else uploaded_file
 
-# 5. Solving Process
-# Check if either a file or text is provided
+# 5. Solving Process logic
 if source_file or typed_problem:
     content_to_send = []
     
@@ -94,7 +86,7 @@ if source_file or typed_problem:
         img = Image.open(source_file)
         max_size = (1024, 1024)
         img.thumbnail(max_size, Image.Resampling.LANCZOS)
-        st.image(img, width=150) 
+        st.image(img, width=50) 
         st.caption("Target Problem Loaded from Image")
         content_to_send.append(img)
     
@@ -103,24 +95,21 @@ if source_file or typed_problem:
 
     st.write("---") 
     
-    btn_col1, btn_col2 = st.columns([4, 1])
-    with btn_col1:
-        solve_clicked = st.button("🚀 Solve")
-    with btn_col2:
-        if st.button("🔄 Reset"):
-            st.session_state.reset_key += 1
-            st.rerun()
-
-    if solve_clicked:
+    # Solve button appears only when data is present
+    if st.button("🚀 Solve"):
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
+                # Instructions updated to handle simplicity vs complexity
                 instructions = (
-                    f"You are an expert calculus reasoning engine. Provide a {complexity} solution. "
+                    f"You are an expert mathematics professor. Provide a {complexity} solution. "
+                    "ADAPTIVE REASONING: If the problem is a simple arithmetic calculation (e.g., 2+3), "
+                    "provide ONLY the result or a very brief explanation. For complex calculus or "
+                    "theorems, follow the full structure. "
                     "For integrals involving ln(1+sin x) / (sin x + cos x): "
                     "1. Use the property integral(f(x)) = integral(f(pi/2 - x)). "
                     "2. Use the identity sin x + cos x = sqrt(2)sin(x + pi/4). "
                     "3. Do NOT simplify to zero unless strictly proven. "
-                    "Structure: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
+                    "Structure (for complex only): ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
                 )
 
                 if "gemini" in model_choice:
@@ -130,23 +119,25 @@ if source_file or typed_problem:
                         contents=content_to_send
                     )
                 else:
-                    # For Gemma, we combine the instructions and content
                     response = client.models.generate_content(
                         model=model_choice,
                         contents=[instructions] + content_to_send
                     )
                 
                 if "ERROR_NOT_READABLE" in response.text:
-                    st.warning("⚠️ Image not readable. Please provide a clear mathematical image or type the problem.")
+                    st.warning("⚠️ Image not readable. Please provide a clear mathematical image.")
                 else:
                     st.subheader(f"2. Solution Report ({model_choice})")
                     st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
+                st.write("---")
+                # Reset button moved to the end and renamed
+                if st.button("🔄 Solve another problem"):
+                    st.query_params["refresh"] = "true"
+                    st.rerun()
+
             except Exception as e:
-                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                    st.error("🚨 Rate Limit Reached. Please wait 60 seconds.")
-                else:
-                    st.error(f"Engine Error: {e}")
+                st.error(f"Engine Error: {e}")
 else:
     st.info("👋 Welcome! Type a problem above or upload an image to begin.")
 
