@@ -59,14 +59,14 @@ if "version" not in st.session_state:
     st.session_state.version = 0
 
 def hard_reset():
-    # Completely wipe session state
-    for key in list(st.session_state.keys()):
+    # Remove ALL widget states
+    keys = list(st.session_state.keys())
+    for key in keys:
         del st.session_state[key]
 
-    # Reinitialize version counter
-    st.session_state.version = st.session_state.get("version", 0) + 1
+    # Recreate version counter to force new widgets
+    st.session_state["version"] = st.session_state.get("version", 0) + 1
 
-    # Force full rerun
     st.rerun()
 
 st.subheader("1. Provide Problem")
@@ -174,5 +174,6 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
+
 
 
