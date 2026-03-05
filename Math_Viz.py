@@ -57,47 +57,43 @@ with col_opt2:
 # 4. MUTUALLY EXCLUSIVE INPUT LOGIC
 st.subheader("1. Provide Problem")
 
-# Initialize Session State
-if "input_mode" not in st.session_state:
-    st.session_state.input_mode = None
-
+# Reset Function: Deletes all session data to clear text/images
 def reset_all():
     for key in st.session_state.keys():
         del st.session_state[key]
     st.rerun()
 
-# Determine disabling logic
-disable_text = st.session_state.get("uploader") is not None or st.session_state.get("camera") is not None
-disable_upload = st.session_state.get("text_input") != "" and st.session_state.get("text_input") is not None
+# Determine disabling logic based on existing content
+has_image = st.session_state.get("uploader") is not None or st.session_state.get("camera") is not None
+has_text = st.session_state.get("text_input", "") != ""
 
-# Text Input
+# Text Input (Disabled if image exists)
 typed_problem = st.text_area("Type your math problem here:", 
                              placeholder="e.g., 2+3",
                              key="text_input",
-                             disabled=disable_text)
+                             disabled=has_image)
 
 st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
-# Image Tabs
+# Image Tabs (Disabled if text exists)
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 with tab1:
-    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="uploader", disabled=disable_upload)
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="uploader", disabled=has_text)
 with tab2:
-    camera_file = st.camera_input("Take a picture", key="camera", disabled=disable_upload)
+    camera_file = st.camera_input("Take a picture", key="camera", disabled=has_text)
 
 source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
-# Logic: Only use one or the other, never both
 active_content = []
-if source_file and not disable_upload:
+if source_file and not has_text:
     img = Image.open(source_file)
     max_size = (1024, 1024)
     img.thumbnail(max_size, Image.Resampling.LANCZOS)
     st.image(img, width=150) 
     st.caption("Target Problem Loaded from Image")
     active_content.append(img)
-elif typed_problem and not disable_text:
+elif typed_problem and not has_image:
     active_content.append(f"TEXT PROBLEM TO SOLVE: {typed_problem}")
 
 if active_content:
@@ -128,6 +124,7 @@ if active_content:
                 st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
                 st.write("---")
+                # Clicking this will now trigger the full clear of the text box and images
                 if st.button("🔄 Solve another problem"):
                     reset_all()
 
