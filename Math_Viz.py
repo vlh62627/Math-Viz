@@ -54,33 +54,46 @@ with col_opt1:
 with col_opt2:
     complexity = st.select_slider("Explanation Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
 
-# 4. MUTUALLY EXCLUSIVE INPUT LOGIC
-st.subheader("1. Provide Problem")
+# 4. HARD RESET LOGIC
+# We use a version counter. Incrementing this "kills" the old widgets and starts fresh.
+if "reset_counter" not in st.session_state:
+    st.session_state.reset_counter = 0
 
-# Reset Function: Deletes all session data to clear text/images
-def reset_all():
-    for key in st.session_state.keys():
-        del st.session_state[key]
+def reset_and_clear():
+    # Increment counter to change all widget keys
+    st.session_state.reset_counter += 1
+    # Clear any residual data in session state
+    for key in list(st.session_state.keys()):
+        if key != "reset_counter":
+            del st.session_state[key]
     st.rerun()
 
-# Determine disabling logic based on existing content
-has_image = st.session_state.get("uploader") is not None or st.session_state.get("camera") is not None
-has_text = st.session_state.get("text_input", "") != ""
+st.subheader("1. Provide Problem")
 
-# Text Input (Disabled if image exists)
+# Unique keys based on reset_counter
+text_key = f"text_input_{st.session_state.reset_counter}"
+uploader_key = f"uploader_{st.session_state.reset_counter}"
+camera_key = f"camera_{st.session_state.reset_counter}"
+
+# Determine disabling logic
+# We check the specific unique keys for this "version" of the page
+has_image = (st.session_state.get(uploader_key) is not None) or (st.session_state.get(camera_key) is not None)
+has_text = st.session_state.get(text_key, "").strip() != ""
+
+# Text Input
 typed_problem = st.text_area("Type your math problem here:", 
                              placeholder="e.g., 2+3",
-                             key="text_input",
+                             key=text_key,
                              disabled=has_image)
 
 st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
-# Image Tabs (Disabled if text exists)
+# Image Tabs
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 with tab1:
-    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key="uploader", disabled=has_text)
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key=uploader_key, disabled=has_text)
 with tab2:
-    camera_file = st.camera_input("Take a picture", key="camera", disabled=has_text)
+    camera_file = st.camera_input("Take a picture", key=camera_key, disabled=has_text)
 
 source_file = camera_file if camera_file is not None else uploaded_file
 
@@ -124,9 +137,9 @@ if active_content:
                 st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
                 st.write("---")
-                # Clicking this will now trigger the full clear of the text box and images
+                # This button now triggers the hard reset function
                 if st.button("🔄 Solve another problem"):
-                    reset_all()
+                    reset_and_clear()
 
             except Exception as e:
                 st.error(f"Engine Error: {e}")
