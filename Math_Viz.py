@@ -102,14 +102,13 @@ if source_file:
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
                 instructions = (
-    f"You are a mathematical reasoning engine. Provide a {complexity} solution. "
-    "CORE OCR INSTRUCTION: If you see a complex definite integral (like ln(1+sin x)), "
-    "apply King's Property: integral from 0 to a of f(x) = f(a-x). "
-    "Use the identity sin x + cos x = sqrt(2)sin(x + pi/4) if necessary. "
-    "Do NOT assume the result is zero without showing the full substitution steps. "
-    "If the image is blurry, respond ONLY with: 'ERROR_NOT_READABLE'. "
-    "Structure: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
-)
+                    "You are an expert calculus reasoning engine. "
+                    "For integrals involving ln(1+sin x) / (sin x + cos x): "
+                    "1. Use the property integral(f(x)) = integral(f(pi/2 - x)). "
+                    "2. Use the identity sin x + cos x = sqrt(2)sin(x + pi/4). "
+                    "3. Do NOT simplify to zero unless strictly proven. "
+                    "Structure: ## PROBLEM IDENTIFICATION, ## MATHEMATICAL IDENTITIES, ## STEP-BY-STEP INTEGRATION, ## FINAL RESULT (LaTeX)."
+                )
 
                 if "gemini" in model_choice:
                     response = client.models.generate_content(
@@ -140,3 +139,4 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
+
