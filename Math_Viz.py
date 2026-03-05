@@ -102,7 +102,7 @@ if source_file:
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
                 instructions = (
-                    "You are an expert calculus reasoning engine. "
+                    "You are an expert calculus reasoning engine. Perform deep research and through validation."
                     "For integrals involving ln(1+sin x) / (sin x + cos x): "
                     "1. Use the property integral(f(x)) = integral(f(pi/2 - x)). "
                     "2. Use the identity sin x + cos x = sqrt(2)sin(x + pi/4). "
@@ -139,4 +139,5 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
+
 
