@@ -81,10 +81,13 @@ has_img = (st.session_state.get(current_uploader_key) is not None) or (st.sessio
 has_text = st.session_state.get(current_text_key, "").strip() != ""
 
 # Text Input
-typed_problem = st.text_area("Type your math problem here:", 
-                             placeholder="e.g., 2+3",
-                             key=current_text_key,
-                             disabled=has_img)
+typed_problem = st.text_area(
+    "Type your math problem here:",
+    placeholder="e.g., 2+3",
+    key=current_text_key,
+    value="",
+    disabled=has_img
+)
 
 st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
@@ -164,8 +167,7 @@ if active_content:
 
                 st.write("---")
 
-                if st.button("🔄 Solve another problem"):
-                    hard_reset()
+                if st.button("🔄 New Problem", on_click=hard_reset)
 
             except Exception as e:
                 st.error(f"Engine Error: {e}")
@@ -174,6 +176,7 @@ else:
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
+
 
 
 
