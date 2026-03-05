@@ -6,7 +6,7 @@ from PIL import Image
 # 1. Page Configuration
 st.set_page_config(page_title="VizAI Math Engine", page_icon="📐", layout="wide")
 
-# Custom CSS for Mobile Readability and Contrast
+# Custom CSS
 st.markdown("""
     <style>
     .main { background-color: #fcfcfc; }
@@ -54,71 +54,71 @@ with col_opt1:
 with col_opt2:
     complexity = st.select_slider("Explanation Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
 
-# 4. HARD RESET LOGIC
-# We use a version counter. Incrementing this "kills" the old widgets and starts fresh.
-if "reset_counter" not in st.session_state:
-    st.session_state.reset_counter = 0
+# 4. HARD RESET LOGIC (Key Rotation)
+if "reset_id" not in st.session_state:
+    st.session_state.reset_id = 0
 
-def reset_and_clear():
-    # Increment counter to change all widget keys
-    st.session_state.reset_counter += 1
-    # Clear any residual data in session state
+def perform_hard_reset():
+    # Incrementing this ID forces Streamlit to recreate all widgets from scratch
+    st.session_state.reset_id += 1
+    # Clear all other session data
     for key in list(st.session_state.keys()):
-        if key != "reset_counter":
+        if key != "reset_id":
             del st.session_state[key]
     st.rerun()
 
 st.subheader("1. Provide Problem")
 
-# Unique keys based on reset_counter
-text_key = f"text_input_{st.session_state.reset_counter}"
-uploader_key = f"uploader_{st.session_state.reset_counter}"
-camera_key = f"camera_{st.session_state.reset_counter}"
+# Generate unique keys for the current session iteration
+current_text_key = f"text_input_v{st.session_state.reset_id}"
+current_uploader_key = f"uploader_v{st.session_state.reset_id}"
+current_camera_key = f"camera_v{st.session_state.reset_id}"
 
-# Determine disabling logic
-# We check the specific unique keys for this "version" of the page
-has_image = (st.session_state.get(uploader_key) is not None) or (st.session_state.get(camera_key) is not None)
-has_text = st.session_state.get(text_key, "").strip() != ""
+# Mutual Exclusion Disabling Logic
+has_img = (st.session_state.get(current_uploader_key) is not None) or (st.session_state.get(current_camera_key) is not None)
+has_txt = st.session_state.get(current_text_key, "").strip() != ""
 
 # Text Input
 typed_problem = st.text_area("Type your math problem here:", 
                              placeholder="e.g., 2+3",
-                             key=text_key,
-                             disabled=has_image)
+                             key=current_text_key,
+                             disabled=has_img)
 
 st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
 # Image Tabs
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 with tab1:
-    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key=uploader_key, disabled=has_text)
+    uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"], key=current_uploader_key, disabled=has_txt)
 with tab2:
-    camera_file = st.camera_input("Take a picture", key=camera_key, disabled=has_text)
+    camera_file = st.camera_input("Take a picture", key=current_camera_key, disabled=has_txt)
 
 source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
 active_content = []
-if source_file and not has_text:
+# Ensure we only pick ONE source based on mutual exclusion
+if source_file and not has_txt:
     img = Image.open(source_file)
     max_size = (1024, 1024)
     img.thumbnail(max_size, Image.Resampling.LANCZOS)
     st.image(img, width=150) 
     st.caption("Target Problem Loaded from Image")
     active_content.append(img)
-elif typed_problem and not has_image:
+elif typed_problem and not has_img:
     active_content.append(f"TEXT PROBLEM TO SOLVE: {typed_problem}")
 
 if active_content:
     st.write("---") 
+    # Show the Solve button ONLY if data exists
     if st.button("🚀 Solve"):
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
                 instructions = (
                     f"You are an expert mathematics professor. Provide a {complexity} solution. "
-                    "ADAPTIVE REASONING: If the problem is a simple arithmetic calculation (e.g., 2+3), "
-                    "provide ONLY the result or a very brief explanation. For complex calculus, "
-                    "use the full structure: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
+                    "ADAPTIVE REASONING: If the problem is simple arithmetic (e.g., 2+3, 5*10), "
+                    "output ONLY the answer with a one-sentence confirmation. "
+                    "For complex calculus, show full steps: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
                 )
 
                 if "gemini" in model_choice:
@@ -133,18 +133,18 @@ if active_content:
                         contents=[instructions] + active_content
                     )
                 
-                st.subheader(f"2. Solution Report ({model_choice})")
+                st.subheader("2. Solution Report")
                 st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
                 
                 st.write("---")
-                # This button now triggers the hard reset function
+                # Reset button appears after result
                 if st.button("🔄 Solve another problem"):
-                    reset_and_clear()
+                    perform_hard_reset()
 
             except Exception as e:
                 st.error(f"Engine Error: {e}")
 else:
-    st.info("👋 Welcome! Type a problem OR upload an image to begin.")
+    st.info("👋 Welcome! Provide a text problem OR an image to start.")
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
