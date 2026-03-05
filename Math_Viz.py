@@ -30,15 +30,14 @@ st.markdown("""
         background-color: #ffffff; 
         padding: 25px; 
         border-radius: 10px; 
-        border: 2px solid #ddd; /* Darker border */
+        border: 2px solid #ddd; 
         box-shadow: 2px 2px 10px rgba(0,0,0,0.1); 
-        color: #111111; /* Very dark charcoal for maximum readability */
+        color: #111111; 
         font-size: 1.05rem;
         line-height: 1.6;
         font-family: 'Helvetica', Arial, sans-serif;
     }
     
-    /* Ensuring LaTeX and markdown headers inside the box are also dark */
     .result-box h2, .result-box h3 { color: #1E3A8A; }
     .result-box p, .result-box li { color: #111111; font-weight: 450; }
     </style>
@@ -46,7 +45,7 @@ st.markdown("""
 
 # 2. Header & Attribution
 st.markdown("<h1 class='math-header'>📐 VizAI Math Engine</h1>", unsafe_allow_html=True)
-st.markdown("<p class='attribution'>💡 Your Homework Assistant, One Photo Away</p>", unsafe_allow_html=True)
+st.markdown("<p class='attribution'>💡 Your Homework Assistant, One Photo or Text Away</p>", unsafe_allow_html=True)
 st.markdown("<p class='attribution'>❤️ Developed by Vijay</p>", unsafe_allow_html=True)
 
 # 3. Setup API Client
@@ -64,10 +63,24 @@ with col_opt2:
     complexity = st.select_slider("Explanation Detail", options=["Brief", "Standard", "Comprehensive"], value="Standard")
 
 # 4. Input Section
-st.subheader("1. Provide Problem Image")
+st.subheader("1. Provide Problem (Image or Text)")
 
 if 'reset_key' not in st.session_state:
     st.session_state.reset_key = 0
+
+# --- Text Input with LaTeX Preview ---
+typed_problem = st.text_area("Type your math problem here (Use $$ for LaTeX):", 
+                             placeholder="e.g., \\int_{0}^{\\pi/2} \\frac{\\ln(1+\\sin x)}{\\sin x + \\cos x} dx",
+                             key=f"text_{st.session_state.reset_key}")
+
+if typed_problem:
+    with st.expander("👀 Math Text Preview", expanded=True):
+        try:
+            st.latex(typed_problem)
+        except Exception:
+            st.info("💡 Tip: Use standard LaTeX syntax for a better preview.")
+
+st.markdown("<p style='text-align: center; font-weight: bold; color: #888;'>— OR —</p>", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["📁 Upload File", "📸 Take Photo"])
 
@@ -80,14 +93,21 @@ with tab2:
 source_file = camera_file if camera_file is not None else uploaded_file
 
 # 5. Solving Process
-if source_file:
-    img = Image.open(source_file)
-    max_size = (1024, 1024)
-    img.thumbnail(max_size, Image.Resampling.LANCZOS)
+if source_file or typed_problem:
+    content_to_send = []
     
-    st.image(img, width=150) 
-    st.caption("Target Problem Loaded")
+    if source_file:
+        img = Image.open(source_file)
+        max_size = (1024, 1024)
+        img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        # Image Preview
+        with st.expander("🖼️ Image Preview", expanded=True):
+            st.image(img, use_container_width=True)
+        content_to_send.append(img)
     
+    if typed_problem:
+        content_to_send.append(f"TEXT PROBLEM TO SOLVE: {typed_problem}")
+
     st.write("---") 
     
     btn_col1, btn_col2 = st.columns([4, 1])
@@ -101,33 +121,38 @@ if source_file:
     if solve_clicked:
         with st.spinner(f"Executing {model_choice} reasoning..."):
             try:
+                # Same expert instructions for calculus accuracy
                 instructions = (
-                    "You are an expert calculus reasoning engine. Perform deep research and through validation."
+                    f"You are an expert calculus reasoning engine. Perform a deep research and through validation. Analyse the answer before showing it. Provide a {complexity} solution. "
                     "For integrals involving ln(1+sin x) / (sin x + cos x): "
                     "1. Use the property integral(f(x)) = integral(f(pi/2 - x)). "
                     "2. Use the identity sin x + cos x = sqrt(2)sin(x + pi/4). "
                     "3. Do NOT simplify to zero unless strictly proven. "
-                    "Structure: ## PROBLEM IDENTIFICATION, ## MATHEMATICAL IDENTITIES, ## STEP-BY-STEP INTEGRATION, ## FINAL RESULT (LaTeX)."
+                    "Structure: ## PROBLEM IDENTIFICATION, ## THEOREMS, ## DERIVATION, ## FINAL RESULT (LaTeX)."
                 )
 
                 if "gemini" in model_choice:
                     response = client.models.generate_content(
                         model=model_choice,
                         config=types.GenerateContentConfig(system_instruction=instructions),
-                        contents=[img]
+                        contents=content_to_send
                     )
                 else:
                     response = client.models.generate_content(
                         model=model_choice,
-                        contents=[instructions, img]
+                        contents=[instructions] + content_to_send
                     )
                 
                 if "ERROR_NOT_READABLE" in response.text:
-                    st.warning("⚠️ Image not readable. Please provide a clear mathematical image.")
+                    st.warning("⚠️ Image not readable. Please provide a clear mathematical image or type the problem.")
                 else:
                     st.subheader(f"2. Solution Report ({model_choice})")
-                    # The container class 'result-box' now enforces dark font colors
                     st.markdown(f"<div class='result-box'>{response.text}</div>", unsafe_allow_html=True)
+                    
+                    # --- NEW: Copyable LaTeX Block ---
+                    st.write("---")
+                    st.subheader("📋 Copy Result (LaTeX)")
+                    st.code(response.text, language="markdown")
                 
             except Exception as e:
                 if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
@@ -135,9 +160,7 @@ if source_file:
                 else:
                     st.error(f"Engine Error: {e}")
 else:
-    st.info("👋 Welcome! The engine is clear. Upload a file or take a photo to begin.")
+    st.info("👋 Welcome! Type a problem above or upload an image to begin.")
 
 st.markdown("---")
 st.caption(f"Status: {model_choice} Active")
-
-
